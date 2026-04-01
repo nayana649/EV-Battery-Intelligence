@@ -1,69 +1,86 @@
 import streamlit as st
-import pandas as pd
 import matplotlib.pyplot as plt
 from src.range_logic import estimate_ev_range
 
-# 1. Page Configuration (Updated to include PWA settings)
-st.set_page_config(
-    page_title="EV Battery Intelligence", 
-    page_icon="app_icon.png",  # Tells Streamlit this is your PWA/App Icon
-    layout="wide"
-)
+# 1. Page Configuration
+st.set_page_config(page_title="EV Intelligence", page_icon="app_icon.png", layout="wide")
 
-# 2. Sidebar Inputs
-st.sidebar.header("🔌 Battery Parameters")
-voltage = st.sidebar.slider("Voltage (V)", 2.0, 4.5, 3.7)
-temp = st.sidebar.slider("Ambient Temperature (°C)", -10, 60, 25)
-style = st.sidebar.selectbox("Driving Style", ["Smooth", "Aggressive"])
+# Initialize Session State (This keeps track of login status)
+if 'logged_in' not in st.session_state:
+    st.session_state.logged_in = False
+if 'user_data' not in st.session_state:
+    st.session_state.user_data = {}
 
-st.title("🚗 AI-Driven EV Range Predictor")
-st.write("Real-time battery health and environmental impact analysis.")
+# --- FUNCTION: LOGIN PAGE ---
+def login_page():
+    st.title("🔐 Secure Member Login")
+    with st.form("login_form"):
+        username = st.text_input("Username")
+        password = st.text_input("Password", type="password")
+        submit = st.form_submit_button("Login")
+        
+        if submit:
+            # Simple demo logic: (In a real app, you'd check a database)
+            if username == "admin" and password == "1234":
+                st.session_state.logged_in = True
+                st.rerun() # Refresh to show the next page
+            else:
+                st.error("Invalid Username or Password")
 
-# 3. Calculation Logic
-if st.button("Calculate Performance"):
+# --- FUNCTION: PROFILE SETUP ---
+def profile_setup():
+    st.title("🚗 Complete Your EV Profile")
+    st.info("Please enter your vehicle details to continue.")
+    
+    with st.form("profile_form"):
+        ev_name = st.text_input("EV Model Name (e.g., Nexon EV, Tesla Model 3)")
+        brand = st.selectbox("Brand", ["Tata", "Tesla", "Mahindra", "Hyundai", "Other"])
+        battery_cap = st.number_input("Battery Capacity (kWh)", min_value=10, max_value=150, value=30)
+        
+        if st.form_submit_button("Save & Enter Dashboard"):
+            st.session_state.user_data = {"name": ev_name, "brand": brand, "cap": battery_cap}
+            st.rerun()
+
+# --- FUNCTION: MAIN DASHBOARD (Your Original App) ---
+def main_dashboard():
+    data = st.session_state.user_data
+    st.title(f"🚗 {data['name']} Dashboard")
+    st.write(f"Welcome back! Analyzing your **{data['brand']}** with {data['cap']}kWh battery.")
+
+    # Sidebar Inputs
+    st.sidebar.header("🔌 Live Parameters")
+    temp = st.sidebar.slider("Ambient Temperature (°C)", -10, 60, 25)
+    style = st.sidebar.selectbox("Driving Style", ["Smooth", "Aggressive"])
+
+    # Calculation & Layout (Same as before)
     health, km = estimate_ev_range(0.08, temp, style)
     
-    # --- DASHBOARD LAYOUT START ---
-    # Create two main columns: 1/3 for text/metrics, 2/3 for the graph
     col_left, col_right = st.columns([1, 2])
-
     with col_left:
-        # 4. Display Metrics
         st.subheader("📊 Key Metrics")
         st.metric("Battery Health (SoH)", f"{health}%")
         st.metric("Estimated Range", f"{km} km")
-
-        # 6. Alert System (Moved here to save vertical space)
-        st.subheader("⚠️ System Status")
-        if temp > 45:
-            st.error(f"OVERHEATING: {temp}°C!")
-        elif health < 30:
-            st.error("LOW HEALTH!")
-        else:
-            st.success("SYSTEM OPTIMAL")
+        if temp > 45: st.error("⚠️ OVERHEATING!")
+        else: st.success("✅ SYSTEM OPTIMAL")
+        
+        if st.button("Logout"):
+            st.session_state.logged_in = False
+            st.session_state.user_data = {}
+            st.rerun()
 
     with col_right:
-        # 5. Visualization Module
-        st.subheader("📈 Range Sensitivity")
-        
-        # Generate data
+        st.subheader("📈 Range Analysis")
         temp_range = list(range(-10, 61, 5))
         ranges = [estimate_ev_range(0.08, t, style)[1] for t in temp_range]
-        
-        # Create a compact, responsive Plot
-        # We use a smaller figsize and tight_layout to prevent scrolling
-        fig, ax = plt.subplots(figsize=(7, 4)) 
-        ax.plot(temp_range, ranges, marker='o', color='#1f77b4', linewidth=2)
-        ax.axvline(x=temp, color='red', linestyle='--', label=f'Current: {temp}°C')
-        
-        ax.set_xlabel("Temp (°C)", fontsize=9)
-        ax.set_ylabel("Range (km)", fontsize=9)
-        ax.tick_params(labelsize=8)
+        fig, ax = plt.subplots(figsize=(7, 4))
+        ax.plot(temp_range, ranges, marker='o', color='#1f77b4')
         ax.grid(True, alpha=0.2)
-        ax.legend(prop={'size': 8})
-        
-        plt.tight_layout() # Removes extra margins
-        
-        # use_container_width=True makes it fit the column perfectly
         st.pyplot(fig, use_container_width=True)
-    # --- DASHBOARD LAYOUT END ---
+
+# --- MAIN NAVIGATION LOGIC ---
+if not st.session_state.logged_in:
+    login_page()
+elif not st.session_state.user_data:
+    profile_setup()
+else:
+    main_dashboard()
