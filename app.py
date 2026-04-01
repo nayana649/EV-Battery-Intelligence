@@ -13,46 +13,53 @@ temp = st.sidebar.slider("Ambient Temperature (°C)", -10, 60, 25)
 style = st.sidebar.selectbox("Driving Style", ["Smooth", "Aggressive"])
 
 st.title("🚗 AI-Driven EV Range Predictor")
-st.write("Visualizing real-time battery health and environmental impact.")
+st.write("Real-time battery health and environmental impact analysis.")
 
 # 3. Calculation Logic
 if st.button("Calculate Performance"):
     health, km = estimate_ev_range(0.08, temp, style)
     
-    # 4. Display Metrics
-    col1, col2 = st.columns(2)
-    with col1:
+    # --- DASHBOARD LAYOUT START ---
+    # Create two main columns: 1/3 for text/metrics, 2/3 for the graph
+    col_left, col_right = st.columns([1, 2])
+
+    with col_left:
+        # 4. Display Metrics
+        st.subheader("📊 Key Metrics")
         st.metric("Battery Health (SoH)", f"{health}%")
-    with col2:
         st.metric("Estimated Range", f"{km} km")
 
-    # 5. Visualization Module (MEMBER 7 START)
-    st.subheader("📊 Range Sensitivity Analysis")
-    
-    # Generate data for the graph
-    temp_range = list(range(-10, 61, 5))
-    ranges = [estimate_ev_range(0.08, t, style)[1] for t in temp_range]
-    
-    # Create the Plot
-    # Updated Line:
-    fig, ax = plt.subplots(figsize=(8, 4))
-    ax.plot(temp_range, ranges, marker='o', color='#1f77b4', linewidth=2)
-    ax.axvline(x=temp, color='red', linestyle='--', label=f'Current Temp: {temp}°C')
-    ax.set_xlabel("Temperature (°C)")
-    ax.set_ylabel("Estimated Range (km)")
-    ax.set_title(f"Impact of Temperature on {style} Driving Range")
-    ax.grid(True, alpha=0.3)
-    ax.legend()
-    
-    # Display Graph in Streamlit
-    st.pyplot(fig)
-    # (MEMBER 7 END)
+        # 6. Alert System (Moved here to save vertical space)
+        st.subheader("⚠️ System Status")
+        if temp > 45:
+            st.error(f"OVERHEATING: {temp}°C!")
+        elif health < 30:
+            st.error("LOW HEALTH!")
+        else:
+            st.success("SYSTEM OPTIMAL")
 
-    # 6. Alert System
-    st.subheader("⚠️ System Alerts & Suggestions")
-    if temp > 45:
-        st.error(f"ALERT: Battery Overheating ({temp}°C)!")
-    elif health < 30:
-        st.error("CRITICAL: Low Battery Health!")
-    else:
-        st.success("SYSTEM READY: Battery is in optimal condition.")
+    with col_right:
+        # 5. Visualization Module
+        st.subheader("📈 Range Sensitivity")
+        
+        # Generate data
+        temp_range = list(range(-10, 61, 5))
+        ranges = [estimate_ev_range(0.08, t, style)[1] for t in temp_range]
+        
+        # Create a compact, responsive Plot
+        # We use a smaller figsize and tight_layout to prevent scrolling
+        fig, ax = plt.subplots(figsize=(7, 4)) 
+        ax.plot(temp_range, ranges, marker='o', color='#1f77b4', linewidth=2)
+        ax.axvline(x=temp, color='red', linestyle='--', label=f'Current: {temp}°C')
+        
+        ax.set_xlabel("Temp (°C)", fontsize=9)
+        ax.set_ylabel("Range (km)", fontsize=9)
+        ax.tick_params(labelsize=8)
+        ax.grid(True, alpha=0.2)
+        ax.legend(prop={'size': 8})
+        
+        plt.tight_layout() # Removes extra margins
+        
+        # use_container_width=True makes it fit the column perfectly
+        st.pyplot(fig, use_container_width=True)
+    # --- DASHBOARD LAYOUT END ---
