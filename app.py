@@ -9,96 +9,102 @@ st.set_page_config(page_title="EV Intelligence", page_icon="app_icon.png", layou
 if 'logged_in' not in st.session_state:
     st.session_state.logged_in = False
 if 'user_db' not in st.session_state:
-    # Pre-filling one admin account for testing
-    st.session_state.user_db = {"admin": "1234"} 
+    st.session_state.user_db = {"admin": "1234"} # Default account
 if 'user_data' not in st.session_state:
     st.session_state.user_data = {}
 if 'auth_mode' not in st.session_state:
     st.session_state.auth_mode = "login"
 
-# --- FUNCTION: AUTHENTICATION (Login/Signup) ---
+# --- AUTHENTICATION PAGE ---
 def auth_page():
     st.title("🚗 EV Intelligence App")
-    
     if st.session_state.auth_mode == "login":
         st.subheader("Login to your Account")
-        with st.form("login_form"):
-            user = st.text_input("Username")
-            pw = st.text_input("Password", type="password")
+        with st.form("login"):
+            u = st.text_input("Username")
+            p = st.text_input("Password", type="password")
             if st.form_submit_button("Login"):
-                if user in st.session_state.user_db and st.session_state.user_db[user] == pw:
+                if u in st.session_state.user_db and st.session_state.user_db[u] == p:
                     st.session_state.logged_in = True
-                    st.success(f"Welcome back, {user}!")
                     st.rerun()
-                else:
-                    st.error("Invalid Username or Password")
-        
+                else: st.error("Invalid credentials")
         if st.button("New User? Create Account"):
             st.session_state.auth_mode = "signup"
             st.rerun()
-
     else:
-        st.subheader("Create a New Account")
-        with st.form("signup_form"):
-            new_user = st.text_input("Choose Username")
-            new_pw = st.text_input("Choose Password", type="password")
-            confirm_pw = st.text_input("Confirm Password", type="password")
-            
+        st.subheader("Create Account")
+        with st.form("signup"):
+            new_u = st.text_input("New Username")
+            new_p = st.text_input("New Password", type="password")
             if st.form_submit_button("Register"):
-                if new_user in st.session_state.user_db:
-                    st.error("Username already exists!")
-                elif new_pw != confirm_pw:
-                    st.error("Passwords do not match!")
-                elif len(new_user) < 3 or len(new_pw) < 4:
-                    st.error("Username/Password too short!")
-                else:
-                    st.session_state.user_db[new_user] = new_pw
-                    st.session_state.auth_mode = "login"
-                    st.success("Account created! Please login.")
-                    st.rerun()
-        
-        if st.button("Already have an account? Login"):
-            st.session_state.auth_mode = "login"
-            st.rerun()
+                st.session_state.user_db[new_u] = new_p
+                st.session_state.auth_mode = "login"
+                st.success("Account created!")
+                st.rerun()
 
-# --- FUNCTION: PROFILE SETUP ---
+# --- PROFILE SETUP ---
 def profile_setup():
-    st.title("🛠️ Set Up Your EV Profile")
-    with st.form("profile_form"):
-        ev_name = st.text_input("Vehicle Name (e.g., My Tata Nexon)")
-        brand = st.selectbox("Manufacturer", ["Tata", "Tesla", "Mahindra", "Hyundai", "BYD", "Other"])
-        if st.form_submit_button("Launch Dashboard"):
-            st.session_state.user_data = {"name": ev_name, "brand": brand}
+    st.title("🛠️ Vehicle Registration")
+    with st.form("setup"):
+        name = st.text_input("EV Name (e.g. My Ola S1)")
+        brand = st.selectbox("Brand", ["Ola", "Ather", "TVS", "Tesla", "Tata", "Other"])
+        if st.form_submit_button("Start Dashboard"):
+            st.session_state.user_data = {"name": name, "brand": brand}
             st.rerun()
 
-# --- FUNCTION: MAIN DASHBOARD ---
+# --- MAIN DASHBOARD (FULL FEATURES) ---
 def main_dashboard():
-    u_name = st.session_state.user_data['name']
-    st.title(f"📊 {u_name} Live Stats")
+    details = st.session_state.user_data
+    st.title(f"⚡ {details['name']} Performance Hub")
+
+    # --- SIDEBAR: USER INPUTS ---
+    st.sidebar.header("🔌 Live Parameters")
+    voltage = st.sidebar.slider("Voltage (V)", 2.0, 4.5, 3.7)
+    temp = st.sidebar.slider("Ambient Temperature (°C)", -10, 60, 25)
+    style = st.sidebar.selectbox("Driving Style", ["Smooth", "Aggressive"])
     
-    # Sidebar for logout and settings
-    st.sidebar.title("App Settings")
     if st.sidebar.button("Logout"):
         st.session_state.logged_in = False
         st.session_state.user_data = {}
         st.rerun()
 
-    # Calculation UI (Your original logic)
-    temp = st.sidebar.slider("Temperature (°C)", -10, 60, 25)
-    style = st.sidebar.selectbox("Driving Style", ["Smooth", "Aggressive"])
+    # --- CALCULATION LOGIC ---
+    # Assuming 0.08 is your standard internal resistance or coefficient
     health, km = estimate_ev_range(0.08, temp, style)
-    
-    c1, c2 = st.columns([1, 2])
-    with c1:
-        st.metric("Range Remaining", f"{km} km")
-        st.metric("Battery Health", f"{health}%")
-    with c2:
-        # Mini chart
-        fig, ax = plt.subplots(figsize=(6, 3))
-        ax.plot([0, 10, 20, 30], [km, km*0.8, km*0.6, km*0.4], color='green')
-        st.pyplot(fig)
 
-# --- APP FLOW CONTROL ---
+    # --- APP LAYOUT ---
+    col1, col2 = st.columns([1, 2])
+
+    with col1:
+        st.subheader("📊 Key Metrics")
+        st.metric("Estimated Range", f"{km} km")
+        st.metric("Battery Health (SoH)", f"{health}%")
+        st.metric("Operating Voltage", f"{voltage} V")
+
+        st.subheader("⚠️ System Status")
+        if temp > 45:
+            st.error(f"ALERT: Battery Overheating ({temp}°C)!")
+        elif health < 30:
+            st.error("CRITICAL: Low Battery Health!")
+        else:
+            st.success("SYSTEM READY: Battery Optimal")
+
+    with col2:
+        st.subheader("📈 Range Sensitivity Analysis")
+        # Generate full sensitivity data for the graph
+        temp_range = list(range(-10, 61, 5))
+        ranges = [estimate_ev_range(0.08, t, style)[1] for t in temp_range]
+        
+        fig, ax = plt.subplots(figsize=(7, 4))
+        ax.plot(temp_range, ranges, marker='o', color='#1f77b4', linewidth=2)
+        ax.axvline(x=temp, color='red', linestyle='--', label=f'Current: {temp}°C')
+        ax.set_xlabel("Temperature (°C)")
+        ax.set_ylabel("Range (km)")
+        ax.grid(True, alpha=0.3)
+        ax.legend()
+        st.pyplot(fig, use_container_width=True)
+
+# --- NAVIGATION ---
 if not st.session_state.logged_in:
     auth_page()
 elif not st.session_state.user_data:
