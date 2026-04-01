@@ -3,8 +3,12 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from src.range_logic import estimate_ev_range
 
-# 1. Page Configuration
-st.set_page_config(page_title="EV Battery Intelligence", layout="wide")
+# 1. Page Configuration (Updated to include PWA settings)
+st.set_page_config(
+    page_title="EV Battery Intelligence", 
+    page_icon="app_icon.png",  # Tells Streamlit this is your PWA/App Icon
+    layout="wide"
+)
 
 # 2. Sidebar Inputs
 st.sidebar.header("🔌 Battery Parameters")
