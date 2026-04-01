@@ -34,7 +34,8 @@ if st.button("Calculate Performance"):
     ranges = [estimate_ev_range(0.08, t, style)[1] for t in temp_range]
     
     # Create the Plot
-    fig, ax = plt.subplots()
+    # Updated Line:
+    fig, ax = plt.subplots(figsize=(8, 4))
     ax.plot(temp_range, ranges, marker='o', color='#1f77b4', linewidth=2)
     ax.axvline(x=temp, color='red', linestyle='--', label=f'Current Temp: {temp}°C')
     ax.set_xlabel("Temperature (°C)")
