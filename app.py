@@ -1,15 +1,33 @@
 import streamlit as st
 import matplotlib.pyplot as plt
+import time
 from src.range_logic import estimate_ev_range
 
 # 1. Page Configuration
-st.set_page_config(page_title="EV Intelligence", page_icon="app_icon.png", layout="wide")
+st.set_page_config(
+    page_title="EV Intelligence", 
+    page_icon="app_icon.png", 
+    layout="wide"
+)
+
+# --- MEMBER 7: UI CUSTOMIZATION (Hiding Streamlit Elements) ---
+hide_st_style = """
+            <style>
+            #MainMenu {visibility: hidden;}
+            footer {visibility: hidden;}
+            header {visibility: hidden;}
+            #stDecoration {display:none;}
+            [data-testid="stMetricValue"] { font-size: 1.8rem; color: #1f77b4; }
+            .stButton>button { width: 100%; border-radius: 20px; height: 3em; background-color: #1f77b4; color: white; }
+            </style>
+            """
+st.markdown(hide_st_style, unsafe_allow_html=True)
 
 # Initialize Session State
 if 'logged_in' not in st.session_state:
     st.session_state.logged_in = False
 if 'user_db' not in st.session_state:
-    st.session_state.user_db = {"admin": "1234"} # Default account
+    st.session_state.user_db = {"admin": "1234"}
 if 'user_data' not in st.session_state:
     st.session_state.user_data = {}
 if 'auth_mode' not in st.session_state:
@@ -29,8 +47,7 @@ def auth_page():
                     st.rerun()
                 else: st.error("Invalid credentials")
         if st.button("New User? Create Account"):
-            st.session_state.auth_mode = "signup"
-            st.rerun()
+            st.session_state.auth_mode = "signup"; st.rerun()
     else:
         st.subheader("Create Account")
         with st.form("signup"):
@@ -39,8 +56,7 @@ def auth_page():
             if st.form_submit_button("Register"):
                 st.session_state.user_db[new_u] = new_p
                 st.session_state.auth_mode = "login"
-                st.success("Account created!")
-                st.rerun()
+                st.success("Account created!"); st.rerun()
 
 # --- PROFILE SETUP ---
 def profile_setup():
@@ -52,7 +68,7 @@ def profile_setup():
             st.session_state.user_data = {"name": name, "brand": brand}
             st.rerun()
 
-# --- MAIN DASHBOARD (FULL FEATURES) ---
+# --- MAIN DASHBOARD ---
 def main_dashboard():
     details = st.session_state.user_data
     st.title(f"⚡ {details['name']} Performance Hub")
@@ -68,9 +84,10 @@ def main_dashboard():
         st.session_state.user_data = {}
         st.rerun()
 
-    # --- CALCULATION LOGIC ---
-    # Assuming 0.08 is your standard internal resistance or coefficient
-    health, km = estimate_ev_range(0.08, temp, style)
+    # --- AI CALCULATION WITH SPINNER ---
+    with st.spinner('AI Model analyzing battery patterns...'):
+        time.sleep(1) # Simulated processing time for the demo
+        health, km = estimate_ev_range(0.08, temp, style)
 
     # --- APP LAYOUT ---
     col1, col2 = st.columns([1, 2])
@@ -88,10 +105,11 @@ def main_dashboard():
             st.error("CRITICAL: Low Battery Health!")
         else:
             st.success("SYSTEM READY: Battery Optimal")
+        
+        st.info("💡 Suggestion: Drive smoothly in extreme heat to preserve range.")
 
     with col2:
         st.subheader("📈 Range Sensitivity Analysis")
-        # Generate full sensitivity data for the graph
         temp_range = list(range(-10, 61, 5))
         ranges = [estimate_ev_range(0.08, t, style)[1] for t in temp_range]
         
